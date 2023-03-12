@@ -1,28 +1,50 @@
 <template>
-  <q-page class="bg-grey-3 column">
-     <q-list class="bg-white" separator bordered>
-      <q-item
-        v-ripple
-        v-for="task in TODOLIST"
-        :key="task.id"
-        clickable
-        :class="[task.done && 'done bg-blue-1']"
-      >
-        <q-item-section>
-          <q-item-label>{{ task.name_uz }} </q-item-label>
-        </q-item-section>
+  <q-page>
+    <div class="q-pa-md">
+      <q-markup-table flat bordered>
+        <thead>
+          <tr>
+            <th class="text-left">Name</th>
+            <th class="text-left">Address</th>
+            <th class="text-center">Cost</th>
+            <th class="text-center">Date</th>
+            <th class="text-center"></th>
+          </tr>
+        </thead>
+        <tbody v-for="task in TODOLIST" :key="task.id">
+          <tr>
+            <td class="text-left">{{ task.name_uz }}</td>
+            <td class="text-left">{{ task.address }}</td>
+            <td class="text-center">{{ task.cost }} uzs</td>
+            <td class="text-center">{{ task.created_date }}</td>
+            <td class="text-center">
+              <q-btn
+                flat
+                round
+                color="primary"
+                @click.stop="deleteTask(task)"
+                icon="delete"
+              />
+            </td>
+          </tr>
+        </tbody>
+      </q-markup-table>
+    </div>
 
-        <q-item-section side>
-          <q-btn
-            flat
-            round
-            color="primary"
-            @click.stop="deleteTask(task)"
-            icon="delete"
-          />
-        </q-item-section>
-      </q-item>
-    </q-list>
+
+
+    <AddTask/>
+
+    <div class="cards">
+      <Cards
+        v-for="todo in TODOLIST"
+        :key="todo.id"
+        :todo="todo"
+        @removeCard="removeCard"
+      />
+    </div>
+
+  
 
     <div class="no-tasks absolute-center" v-if="!TODOLIST.length">
       <q-icon name="check" size="100px" color="primary" />
@@ -34,26 +56,19 @@
 <script>
 import { defineComponent } from "vue";
 import { mapActions, mapGetters } from "vuex";
+import Cards from "src/components/Cards.vue";
+import AddTask from "src/components/AddTask.vue";
 
 export default defineComponent({
- 
-
-  data() {
-    return {
-      newTask: "",
-      cost: 0,
-    };
+  components: {
+    Cards,
+    AddTask,
   },
-
   computed: {
     ...mapGetters("todolist", ["TODOLIST"]),
   },
   methods: {
-    ...mapActions("todolist", [
-      "GET_USERS_FROM_API",
-      "DELETE_TODOITEM",
-      "ADD_NEW_TODOITEM",
-    ]),
+    ...mapActions("todolist", ["GET_USERS_FROM_API", "DELETE_TODOITEM"]),
 
     deleteTask(el) {
       this.$q
@@ -72,17 +87,23 @@ export default defineComponent({
         });
     },
 
-    addTask() {
-      const data = {
-        product_type_id: 0,
-        name_uz: this.newTask,
-        cost: 150.0,
-        address: "Chilonzor",
-        created_date: Date.now(),
-      };
+    removeCard(el) {
+      this.$emit("removeCard", el);
 
-      this.ADD_NEW_TODOITEM(data);
-      this.newTask = "";
+      this.$q
+        .dialog({
+          title: "Confirm",
+          message: "Do you really want to delete?",
+          cancel: true,
+          persistent: true,
+        })
+        .onOk(() => {
+          this.$q.notify({
+            color: "warning",
+            message: `${el.name_uz} deleted`,
+          });
+          this.DELETE_TODOITEM(el.id);
+        });
     },
   },
 
@@ -93,8 +114,31 @@ export default defineComponent({
 </script>
 
 <style lang="scss">
-.q-item__label {
-  text-transform: capitalize;
+.q-markup-table {
+  @media (max-width: 540px) {
+    display: none;
+  }
+}
+tr {
+  td:first-child,
+  td:nth-child(2) {
+    text-transform: capitalize;
+  }
+}
+
+.cards {
+  width: 100%;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  padding: 16px 0;
+
+  @media (max-width: 540px) {
+    display: flex;
+    width: 90%;
+    margin: auto;
+  }
 }
 
 .no-tasks {
